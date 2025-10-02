@@ -39,17 +39,27 @@ uploaded_model_files = st.sidebar.file_uploader(
 # Guardar modelos subidos temporalmente
 if uploaded_model_files:
     for file in uploaded_model_files:
+        if "_tf2" in file.name:
+            continue  # ignorar modelos tf2
         if file.name not in st.session_state.session_models:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".h5") as tmp_file:
                 tmp_file.write(file.read())
                 st.session_state.session_models[file.name] = tmp_file.name
             st.sidebar.success(f"✅ Modelo {file.name} cargado")
 
-# Modelos preentrenados en la carpeta
-folder_models = {f: os.path.join(MODEL_DIR, f) for f in os.listdir(MODEL_DIR) if f.endswith('.h5')} if os.path.exists(MODEL_DIR) else {}
+# Modelos preentrenados en la carpeta, ignorando los *_tf2
+folder_models = {}
+if os.path.exists(MODEL_DIR):
+    for f in os.listdir(MODEL_DIR):
+        if f.endswith('.h5') and "_tf2" not in f:
+            folder_models[f] = os.path.join(MODEL_DIR, f)
+else:
+    os.makedirs(MODEL_DIR)
 
 # Combinar opciones
-select_options = [f"[Preentrenado] {n}" for n in folder_models.keys()] + [f"[Subido] {n}" for n in st.session_state.session_models.keys()]
+select_options = [f"[Preentrenado] {n}" for n in folder_models.keys()] + \
+                 [f"[Subido] {n}" for n in st.session_state.session_models.keys()]
+
 selected_model_label = st.sidebar.selectbox("Selecciona un modelo", select_options)
 
 # Cargar modelo
@@ -100,4 +110,5 @@ if uploaded_images:
             st.error(f"❌ No se pudo procesar {uploaded_image.name}: {e}")
 else:
     st.info("ℹ️ Sube una o varias imágenes para ver las predicciones.")
+
 st.write("---")
